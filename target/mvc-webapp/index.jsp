@@ -6,6 +6,7 @@
     <title>Hello JSP</title>
 </head>
 <body>
-    <c:out value="Hello World!"/>
+    <c:out value="Hello World! Armok's worst possible homepage"/>
+    <p><a href='login.jsp'>log in / register</a></p>
 </body>
 </html>
