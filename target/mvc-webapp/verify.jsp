@@ -13,55 +13,55 @@ pageEncoding="ISO-8859-1"%>
 <body>
 
 <!--SQL Driver init-->
-
 <sql:setDataSource var="snapshot" driver="com.mysql.jdbc.Driver"
 url="jdbc:mysql://localhost:3306/wiki_db" user="root" password="password"/>
 
-<!--Acquire Username: Do not acquire password til validated-->
-
-<c:set var = "usernameEntered" scope = "session" value="${param.usernameForm}"/>
-
-<!--Conn and Query-->
-<sql:query dataSource="${snapshot}" var="result">
-    SELECT COUNT(*) AS CountUsers
-    FROM user_login
-    WHERE username = ?
-<sql:param value="${usernameEntered}" />
+<!-- Admin check -->
+<sql:query dataSource="${snapshot}" var="adminResult">
+    SELECT COUNT(*) AS adminQuery
+    FROM admin_login
+    WHERE username = ? AND password_hash = MD5(?)
+    <sql:param value="${param.usernameForm}" />
+    <sql:param value="${param.passwordForm}" />
 </sql:query>
 
-<!--Extract data from result set-->
-<c:forEach items="${result.rows}" var="r">
+<!-- Evaluate admin login -->
+<c:forEach items="${adminResult.rows}" var="rEval">
     <c:choose>
-        <c:when test="${r.countUsers > 0}">
-            <c:out value="Username ${usernameEntered} exists"/>
-
-            <!--Begin password eval-->
-            <c:set var="password" value="${param.passwordForm}" />
-
+        <c:when test="${rEval.adminQuery == 1}">
+            <!--Hold sessiondata on successful login and report-->
+            <c:set var = "usernameSession" scope = "session" value="${param.usernameForm}" />
+            <c:set var="isAdmin" value="true" scope="session" />
+            <c:out value="Admin login successful for ${usernameSession}" />
+        </c:when>
+        <c:when test="${rEval.adminQuery > 1}">
+            <c:out value="ERROR! CREDENTIAL DUPLICATION IN ADMIN TABLE"/>
+        </c:when>
+        <c:otherwise>
+        <!-- Evaluate user login on admin login fail -->
             <sql:query dataSource="${snapshot}" var="result">
-                SELECT COUNT(*) AS pwQuery 
+                SELECT COUNT(*) AS userQuery
                 FROM user_login 
-                WHERE username = ? AND password_hash = ?
-                <sql:param value="${usernameEntered}" />
+                WHERE username = ? AND password_hash = MD5(?)
+                <sql:param value="${param.usernameForm}" />
                 <sql:param value="${param.passwordForm}" />
             </sql:query>
-
-            <!--Select-->
-            <c:forEach items="${result.rows}" var="r">
-            <!--Assessment-->
+            <!--Select and assess-->
+            <c:forEach items="${result.rows}" var="rEval">
                 <c:choose>
-                    <c:when test="${r.pwQuery > 0}">
-                        <c:out value="Password exists"/>
+                    <c:when test="${rEval.userQuery == 1}">
+                        <!--Hold sessiondata on successful login and report-->
+                        <c:set var = "usernameSession" scope = "session" value="${param.usernameForm}" />
+                        <c:out value="User login successful for ${usernameSession}" />
+                    </c:when>
+                    <c:when test="${rEval.userQuery > 1}">
+                        <c:out value="ERROR! CREDENTIAL DUPLICATION IN USER TABLE"/>
                     </c:when>
                     <c:otherwise>
-                        <c:out value=" Password eval fail"/>
+                        <c:out value="Account auth failed! User not found or password incorrect."/>
                     </c:otherwise>
                 </c:choose>
             </c:forEach>
-        </c:when>
-
-        <c:otherwise>
-        <c:out value=" Username ${usernameEntered} does not exist!"/>
         </c:otherwise>
     </c:choose>
 </c:forEach>
