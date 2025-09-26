@@ -16,7 +16,7 @@ pageEncoding="ISO-8859-1"%>
 <sql:setDataSource var="snapshot" driver="com.mysql.jdbc.Driver"
 url="jdbc:mysql://localhost:3306/wiki_db" user="root" password="password"/>
 
-<!-- Admin check -->
+<!-- Admin eval query -->
 <sql:query dataSource="${snapshot}" var="adminResult">
     SELECT COUNT(*) AS adminQuery
     FROM admin_login
@@ -38,7 +38,7 @@ url="jdbc:mysql://localhost:3306/wiki_db" user="root" password="password"/>
             <c:out value="ERROR! CREDENTIAL DUPLICATION IN ADMIN TABLE"/>
         </c:when>
         <c:otherwise>
-        <!-- Evaluate user login on admin login fail -->
+        <!-- Evaluate user login on admin login fail: Query first -->
             <sql:query dataSource="${snapshot}" var="result">
                 SELECT COUNT(*) AS userQuery
                 FROM user_login 
@@ -46,7 +46,7 @@ url="jdbc:mysql://localhost:3306/wiki_db" user="root" password="password"/>
                 <sql:param value="${param.usernameForm}" />
                 <sql:param value="${param.passwordForm}" />
             </sql:query>
-            <!--Select and assess-->
+            <!--Pore through the result table and assess-->
             <c:forEach items="${result.rows}" var="rEval">
                 <c:choose>
                     <c:when test="${rEval.userQuery == 1}">
